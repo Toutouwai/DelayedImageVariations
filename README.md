@@ -43,9 +43,9 @@ For advanced cases there is also a hookable method that you can return `false` f
 $wire->addHookAfter('DelayedImageVariations::allowDelayedVariation', function(HookEvent $event) {
     /** @var Pageimage $pageimage */
     $pageimage = $event->arguments(0); // The Pageimage to be resized
-    $width = $event->arguments(0); // The width supplied to Pageimage::size()
-    $height = $event->arguments(0); // The height supplied to Pageimage::size()
-    $options = $event->arguments(0); // The options supplied to Pageimage::size()
+    $width = $event->arguments(1); // The width supplied to Pageimage::size()
+    $height = $event->arguments(2); // The height supplied to Pageimage::size()
+    $options = $event->arguments(3); // The options supplied to Pageimage::size()
 
     // Don't delay variations if the Pageimage belongs to a page with the product template
     if($pageimage->page->template == 'product') $event->return = false;
