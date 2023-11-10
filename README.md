@@ -37,7 +37,7 @@ echo $resized->height;
 echo $resized->filesize;
 ```
 
-For advanced cases there is also a hookable method that you return `false` for if you don't want a delayed variation for any particular resizing operation. Example:
+For advanced cases there is also a hookable method that you can return `false` for if you don't want a delayed variation for any particular resizing operation. Example:
 
 ```php
 $wire->addHookAfter('DelayedImageVariations::allowDelayedVariation', function(HookEvent $event) {
