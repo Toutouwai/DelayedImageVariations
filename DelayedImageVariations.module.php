@@ -31,7 +31,7 @@ class DelayedImageVariations extends WireData implements Module {
 		if(strpos($url, $config->urls->files) !== 0) return;
 		// Only if there is a corresponding queue file
 		$root = rtrim($config->paths->root, '/');
-		$queue_filename = $root . $url . '.txt';
+		$queue_filename = $root . $url . '.queue';
 		if(!is_file($queue_filename)) return;
 
 		// Replace the hooked method
@@ -105,7 +105,7 @@ class DelayedImageVariations extends WireData implements Module {
 		$event->cancelHooks = true;
 
 		// Write size() arguments to queue file in JSON format
-		$queue_filename = $variation_filename . '.txt';
+		$queue_filename = $variation_filename . '.queue';
 		$settings = [
 			'original' => $pageimage->url,
 			'width' => $width,
@@ -133,7 +133,7 @@ class DelayedImageVariations extends WireData implements Module {
 		$pageimage = $event->arguments(0);
 		$files = $this->wire()->files;
 		$filename_start = str_replace($pageimage->ext, '', $pageimage->filename);
-		$candidates = $files->find($pageimage->pagefiles->path(), ['extensions' => 'txt']);
+		$candidates = $files->find($pageimage->pagefiles->path(), ['extensions' => 'queue']);
 		foreach($candidates as $candidate) {
 			if(strpos($candidate, $filename_start) !== 0) continue;
 			$files->unlink($candidate);
