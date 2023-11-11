@@ -2,28 +2,19 @@
 
 class DelayedImageVariations extends WireData implements Module {
 
-	protected $queueDir;
-
-	/**
-	 * Construct
-	 */
-	public function __construct() {
-		parent::__construct();
-		$this->queueDir = $this->wire()->config->paths->assets . 'div-queue/';
-	}
-
 	/**
 	 * Init
 	 */
 	public function init() {
-		$this->addHookBefore('ProcessPageView::pageNotFound', $this, 'beforePageNotFound');
+		$this->addHookBefore('ProcessPageView::pageNotFound', $this, 'beforePageNotFound', ['priority' => 90]);
 	}
 
 	/**
 	 * Ready
 	 */
 	public function ready() {
-		$this->addHookBefore('Pageimage::size', $this, 'beforeSize', ['priority' => 199]);
+		$this->addHookBefore('Pageimage::size', $this, 'beforeSize', ['priority' => 190]);
+		$this->addHookBefore('Pageimages::delete', $this, 'beforePageimagesDelete');
 	}
 
 	/**
@@ -34,19 +25,25 @@ class DelayedImageVariations extends WireData implements Module {
 	protected function beforePageNotFound(HookEvent $event) {
 		$url = $event->arguments(1);
 		if(!$url) return;
-		$path_parts = pathinfo($url);
-		if(empty($path_parts['basename'])) return;
-		$filename = $this->queueDir . $path_parts['basename'] . '.txt';
-		if(!is_file($filename)) return;
+		$config = $event->wire()->config;
 		$files = $event->wire()->files;
+		// Only if the URL is to file within the /site/assets/files/ directory
+		if(strpos($url, $config->urls->files) !== 0) return;
+		// Only if there is a corresponding queue file
+		$root = rtrim($config->paths->root, '/');
+		$queue_filename = $root . $url . '.txt';
+		if(!is_file($queue_filename)) return;
 
 		// Replace the hooked method
 		$event->replace = true;
 
+		// Cancel hooks because this is no longer a 404
+		$event->cancelHooks = true;
+
 		// Get the settings from the queue file then delete it
-		$json = $files->fileGetContents($filename);
+		$json = $files->fileGetContents($queue_filename);
 		$settings = wireDecodeJSON($json);
-		$files->unlink($filename);
+		$files->unlink($queue_filename);
 
 		// Get the original Pageimage
 		$pm = $this->wire()->pages(1)->filesManager;
@@ -107,8 +104,8 @@ class DelayedImageVariations extends WireData implements Module {
 		// Cancel any other hooks because they will get a chance to fire on the delayed size() call
 		$event->cancelHooks = true;
 
-		// Write size() arguments to file in JSON format
-		$queue_filename = $this->queueDir . $basename . '.txt';
+		// Write size() arguments to queue file in JSON format
+		$queue_filename = $variation_filename . '.txt';
 		$settings = [
 			'original' => $pageimage->url,
 			'width' => $width,
@@ -123,6 +120,24 @@ class DelayedImageVariations extends WireData implements Module {
 		$variation->setFilename($variation_filename);
 		$variation->setOriginal($pageimage);
 		$event->return = $variation;
+	}
+
+	/**
+	 * Before Pageimages::delete
+	 * Delete any queue files that relate to the deleted image
+	 *
+	 * @param HookEvent $event
+	 */
+	protected function beforePageimagesDelete(HookEvent $event) {
+		/** @var Pageimage $pageimage */
+		$pageimage = $event->arguments(0);
+		$files = $this->wire()->files;
+		$filename_start = str_replace($pageimage->ext, '', $pageimage->filename);
+		$candidates = $files->find($pageimage->pagefiles->path(), ['extensions' => 'txt']);
+		foreach($candidates as $candidate) {
+			if(strpos($candidate, $filename_start) !== 0) continue;
+			$files->unlink($candidate);
+		}
 	}
 
 	/**
@@ -293,10 +308,6 @@ class DelayedImageVariations extends WireData implements Module {
 	 * Install
 	 */
 	public function ___install() {
-
-		// Create the div-queue directory in /site/assets/
-		$this->wire()->files->mkdir($this->queueDir);
-
 		// Warn if older UniqueImageVariations module is installed
 		$modules = $this->wire()->modules;
 		if($modules->isInstalled('UniqueImageVariations')) {
