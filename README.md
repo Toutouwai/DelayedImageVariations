@@ -74,7 +74,7 @@ If you are using ProCache then make sure it is **not configured to cache the 404
 
 ### Render queued variations
 
-Before launching a new website you might want to pre-generate all needed image variations, so no visitor will have to experience a delay while a variation is generated. To queue up the image variations needed for you site you will need to visit each page of the website one way or another. You could do this manually for a small site but for larger sites you'll probably want to use a site crawler tool such as [Xenu's Link Sleuth](https://en.wikipedia.org/wiki/Xenu%27s_Link_Sleuth). This may generate some image variations but it's likely that some other variations (e.g. within srcset elements) will not be requested and so will remain queued.
+Before launching a new website you might want to pre-generate all needed image variations, so no visitor will have to experience a delay while a variation is generated. To queue up the image variations needed for you site you will need to visit each page of the website one way or another. You could do this manually for a small site but for larger sites you'll probably want to use a site crawler tool such as [Xenu's Link Sleuth](https://en.wikipedia.org/wiki/Xenu%27s_Link_Sleuth). This may generate some image variations but it's likely that some other variations (e.g. within srcset attributes) will not be requested and so will remain queued.
 
 To render all currently queued variations there is a button in the module config:
 
