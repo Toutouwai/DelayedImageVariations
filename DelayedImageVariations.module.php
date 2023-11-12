@@ -1,6 +1,6 @@
 <?php namespace ProcessWire;
 
-class DelayedImageVariations extends WireData implements Module {
+class DelayedImageVariations extends WireData implements Module, ConfigurableModule {
 
 	/**
 	 * Init
@@ -15,6 +15,7 @@ class DelayedImageVariations extends WireData implements Module {
 	public function ready() {
 		$this->addHookBefore('Pageimage::size', $this, 'beforeSize', ['priority' => 190]);
 		$this->addHookBefore('Pageimages::delete', $this, 'beforePageimagesDelete');
+		$this->addHook('/render-queued-variations/', $this, 'renderQueuedVariations');
 	}
 
 	/**
@@ -138,6 +139,45 @@ class DelayedImageVariations extends WireData implements Module {
 			if(strpos($candidate, $filename_start) !== 0) continue;
 			$files->unlink($candidate);
 		}
+	}
+
+	/**
+	 * Render queued variations
+	 *
+	 * @param HookEvent $event
+	 */
+	protected function renderQueuedVariations(HookEvent $event) {
+		$config = $this->wire()->config;
+		$base = $config->urls->files;
+		$queued = $this->wire()->files->find($config->paths->files, ['recursive' => true, 'extensions' => 'queue', 'returnRelative' => true]);
+		$title = $this->_('Queued variations');
+		if($queued) {
+			$out = "<div class='variations'>";
+			foreach($queued as $item) {
+				$img = substr($item, 0, -6);
+				$out .= "<img src='{$base}{$img}' alt=''>";
+			}
+			$out .= "</div>";
+		} else {
+			$out = $this->_('No queued variations found.');
+		}
+		return <<<EOT
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>$title</title>
+	<style>
+		body { font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+		.variations { display:flex; flex-flow:row wrap; }
+		.variations img { height:130px; margin:0 5px 5px 0; }
+	</style>
+</head>
+<body>
+	$out
+</body>
+</html>
+EOT;
 	}
 
 	/**
@@ -302,6 +342,30 @@ class DelayedImageVariations extends WireData implements Module {
 		// END: copied from Pageimage::size()
 
 		return $basename;
+	}
+
+	/**
+	 * Config inputfields
+	 *
+	 * @param InputfieldWrapper $inputfields
+	 */
+	public function getModuleConfigInputfields($inputfields) {
+		$modules = $this->wire()->modules;
+
+		/** @var InputfieldButton $f */
+		$f = $modules->get('InputfieldButton');
+		$f->value = $this->_('Generate queued variations');
+		$f->icon = 'external-link';
+		$f->href = $this->wire()->config->urls->root . 'render-queued-variations/';
+		$f->attr('target', '_blank');
+		$markup = $f->render();
+
+		/** @var InputfieldMarkup $f */
+		$f = $modules->get('InputfieldMarkup');
+		$f->label = $this->_('Generate queued variations');
+		$f->notes = $this->_('This button will open a page which will render all existing queued image variations.');
+		$inputfields->add($f);
+		$f->value = $markup;
 	}
 
 	/**
