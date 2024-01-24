@@ -73,6 +73,10 @@ class DelayedImageVariations extends WireData implements Module, ConfigurableMod
 		$width = $event->arguments(0);
 		$height = $event->arguments(1);
 		$options = $event->arguments(2);
+
+		// Return if in PW admin
+		if($this->wire()->config->admin) return;
+
 		if(!is_array($options)) $options = $pageimage->sizeOptionsToArray($options);
 		$files = $this->wire()->files;
 
@@ -190,8 +194,6 @@ EOT;
 	 * @return bool
 	 */
 	public function ___allowDelayedVariation(Pageimage $pageimage, $width, $height, $options) {
-		// Skip admin thumbnail
-		if($this->wire()->config->admin && ($width === 260 || $height === 260)) return false;
 		return true;
 	}
 
