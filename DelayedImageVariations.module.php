@@ -165,6 +165,7 @@ class DelayedImageVariations extends WireData implements Module, ConfigurableMod
 		} else {
 			$out = $this->_('No queued variations found.');
 		}
+		header("X-Robots-Tag: noindex");
 		return <<<EOT
 <!DOCTYPE html>
 <html lang="en">
