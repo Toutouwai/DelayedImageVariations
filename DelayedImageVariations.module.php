@@ -33,6 +33,11 @@ class DelayedImageVariations extends WireData implements Module, ConfigurableMod
 		// Only if there is a corresponding queue file
 		$root = rtrim($config->paths->root, '/');
 		$queue_filename = $root . $url . '.queue';
+		if(!is_file($queue_filename)) {
+			// If no match, adjust filename in case secure Pagefiles are in use
+			$url = str_replace($config->urls->files, $config->urls->files . '-', $url);
+			$queue_filename = $root . $url . '.queue';
+		}
 		if(!is_file($queue_filename)) return;
 
 		// Replace the hooked method
